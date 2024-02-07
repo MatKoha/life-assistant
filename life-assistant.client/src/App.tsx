@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import Dashboard from './components/Dashboard';
+import DashboardItem from './components/Dashboard/DashboardItem';
 import './App.css';
-import { Grid } from '@mui/material';
+import { Grid, ToggleButton, ToggleButtonGroup } from '@mui/material';
 
 //interface Forecast {
 //    date: string;
@@ -16,6 +17,17 @@ function App() {
     //useEffect(() => {
     //    populateWeatherData();
     //}, []);
+    enum WeatherDisplayType {
+        Hour = 0,
+        Day = 1
+    }
+
+    const [weatherType, setWeatherType] = useState<WeatherDisplayType>(WeatherDisplayType.Hour);
+
+    const handleWeatherDisplayType = (event: React.MouseEvent<HTMLElement>, value: WeatherDisplayType) => {
+        setWeatherType(value);
+        console.log(event);
+    }
 
     return (
         <div>
@@ -23,7 +35,13 @@ function App() {
                 <Grid item xs={12} md={6}>
                     <Grid container spacing={2}>
                         <Grid item xs={12}>
-                            Moi
+                            <DashboardItem title='Sää' headerAction={
+                                <ToggleButtonGroup value={weatherType} size="small" color="primary" onChange={handleWeatherDisplayType} exclusive>
+                                    <ToggleButton value={WeatherDisplayType.Hour}>12 tuntia</ToggleButton>
+                                    <ToggleButton value={WeatherDisplayType.Day}>5 vrk</ToggleButton>
+                                </ToggleButtonGroup>
+                            }>
+                            </DashboardItem>
                         </Grid>
                         <Grid item xs={12}>
                             Hei
