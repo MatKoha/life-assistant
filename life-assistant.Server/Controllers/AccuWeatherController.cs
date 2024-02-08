@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
 
-namespace life_management_app_backend.Controllers
+namespace life_assistant.Controllers
 {
     [ApiController]
     [Route("api/weather")]

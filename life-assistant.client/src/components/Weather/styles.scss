@@ -1,0 +1,25 @@
+.positive {
+    color:red !important;
+}
+
+.negative {
+    color:blue !important;
+}
+
+.degrees {
+    font-weight: 700;
+}
+
+.iconValuePair {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+    justify-content: flex-start;
+    height: 28px;
+    width: 76px;
+    white-space: nowrap;
+}
+
+.MuiCardContent-root {
+    margin-top: -8px;
+}
