@@ -43,7 +43,7 @@ const Weather: React.FC<Properties> = (props) => {
     }, []);
 
   useEffect(() => {
-      //fetchHourlyWeatherData();
+      fetchHourlyWeatherData();
       fetchDailyWeatherData();
       setLoading(false);
   }, []);
