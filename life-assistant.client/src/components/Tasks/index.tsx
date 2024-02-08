@@ -35,7 +35,7 @@ interface Properties {
     children?: React.ReactNode;
 }
 
-const Tasks: React.FC<Properties> = (props) => {
+const Tasks: React.FC<Properties> = () => {
     const [loading, setLoading] = React.useState(true);
     const [data, setData] = React.useState<GoogleTask[]>([]);
     const [error, setError] = React.useState<string | null>();
@@ -71,7 +71,7 @@ const Tasks: React.FC<Properties> = (props) => {
         return d.format(formatString);
     };
 
-    const handleModifyTask = (task?: GoogleTask): React.MouseEventHandler<HTMLButtonElement> => (event): void => {
+    const handleModifyTask = (task?: GoogleTask): React.MouseEventHandler<HTMLButtonElement> => (): void => {
         if (task == null) {
             task = {
                 title: '',
@@ -84,7 +84,7 @@ const Tasks: React.FC<Properties> = (props) => {
         setModifyItem(task);
     };
 
-    const handleCheckboxToggle = (task: GoogleTask): React.MouseEventHandler<HTMLButtonElement> => (event): void => {
+    const handleCheckboxToggle = (task: GoogleTask): React.MouseEventHandler<HTMLButtonElement> => (): void => {
         task.status = task.status === TaskStatus.Completed ? TaskStatus.Pending : TaskStatus.Completed;
         updateTask(task);
     };
@@ -129,7 +129,7 @@ const Tasks: React.FC<Properties> = (props) => {
         setModifyItem(null);
     };
 
-    const handleDeleteTask = (taskId: string | undefined): React.MouseEventHandler<HTMLButtonElement> => (event): void => {
+    const handleDeleteTask = (taskId: string | undefined): React.MouseEventHandler<HTMLButtonElement> => (): void => {
         setLoading(true);
         axios.delete(`${apiUrl}/${taskId}`)
             .then(() => {
@@ -161,7 +161,7 @@ const Tasks: React.FC<Properties> = (props) => {
                     </Alert>
                 </Snackbar>
                 <LinearProgress className={loading ? '' : 'hidden'} />
-                {data && data.map((task, i) => (
+                {data && data.map((task) => (
                     <ListItem key={task.id} disablePadding>
                         <ListItemButton dense>
                             <Checkbox
