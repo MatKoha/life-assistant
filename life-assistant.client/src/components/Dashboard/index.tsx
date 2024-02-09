@@ -1,4 +1,4 @@
-import * as React from 'react';
+ï»¿import * as React from 'react';
 import { styled, createTheme, ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import MuiDrawer from '@mui/material/Drawer';
@@ -148,19 +148,19 @@ const Dashboard: React.FC<Properties> = (props) => {
                                 <ListItemIcon>
                                     <WbSunnyIcon />
                                 </ListItemIcon>
-                                <ListItemText primary="Sää" />
+                                <ListItemText primary="SÃ¤Ã¤" />
                             </ListItemButton>
                             <ListItemButton>
                                 <ListItemIcon>
                                     <FavoriteIcon />
                                 </ListItemIcon>
-                                <ListItemText primary="Hyvinvoiti" />
+                                <ListItemText primary="Hyvinvointi" />
                             </ListItemButton>
                             <ListItemButton>
                                 <ListItemIcon>
                                     <TaskIcon />
                                 </ListItemIcon>
-                                <ListItemText primary="Tehtävät" />
+                                <ListItemText primary="TehtÃ¤vÃ¤t" />
                             </ListItemButton>
                             <ListItemButton>
                                 <ListItemIcon>

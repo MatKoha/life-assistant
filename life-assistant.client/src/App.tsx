@@ -1,4 +1,4 @@
-import { useState } from 'react';
+ï»¿import { useState } from 'react';
 import Dashboard from './components/Dashboard';
 import DashboardItem from './components/Dashboard/DashboardItem';
 import Weather from './components/Weather';
@@ -23,7 +23,7 @@ const App = () => {
                 <Grid item xs={12} md={6}>
                     <Grid container spacing={2}>
                         <Grid item xs={12}>
-                            <DashboardItem title='Sää' headerAction={
+                            <DashboardItem title='SÃ¤Ã¤' headerAction={
                                 <ToggleButtonGroup value={weatherType} size="small" color="primary" onChange={handleWeatherDisplayType} exclusive>
                                     <ToggleButton value={WeatherDisplayType.Hour}>12 tuntia</ToggleButton>
                                     <ToggleButton value={WeatherDisplayType.Day}>5 vrk</ToggleButton>
