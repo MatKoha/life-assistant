@@ -9,11 +9,13 @@ namespace life_assistant.Controllers
     {
         private readonly ILogger<AccuWeatherController> _logger;
         private readonly IHttpClientFactory _httpClientFactory;
+        private readonly IConfiguration _config;
 
-        public AccuWeatherController(ILogger<AccuWeatherController> logger, IHttpClientFactory httpClientFactory)
+        public AccuWeatherController(ILogger<AccuWeatherController> logger, IHttpClientFactory httpClientFactory, IConfiguration config)
         {
             _logger = logger;
             _httpClientFactory = httpClientFactory;
+            _config = config;
         }
 
         [HttpGet("hourly/{locationId}")]
@@ -32,7 +34,7 @@ namespace life_assistant.Controllers
         {
             try
             {
-                string apiKey = Environment.GetEnvironmentVariable("AccuWeatherApiKey");
+                string apiKey = _config["ACCUWEATHER_API_KEY"];
                 string baseUrl = "http://dataservice.accuweather.com";
 
                 var client = _httpClientFactory.CreateClient("AccuWeatherApi");

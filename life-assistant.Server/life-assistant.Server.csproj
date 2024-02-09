@@ -9,6 +9,7 @@
     <SpaRoot>..\life-assistant.client</SpaRoot>
     <SpaProxyLaunchCommand>npm run dev</SpaProxyLaunchCommand>
     <SpaProxyServerUrl>https://localhost:5173</SpaProxyServerUrl>
+    <UserSecretsId>1e875a45-2a70-42bd-8e7e-cb004644e797</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
