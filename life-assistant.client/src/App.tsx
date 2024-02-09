@@ -7,6 +7,8 @@ import { Grid, ToggleButton, ToggleButtonGroup } from '@mui/material';
 import { WeatherDisplayType } from './enums';
 import Tasks from './components/Google/Tasks';
 import GoogleOAuthProvider from './components/Google/GoogleOAuthProvider';
+import { LocalizationProvider } from '@mui/x-date-pickers';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs'
 
 const App = () => {
     const [weatherType, setWeatherType] = useState<WeatherDisplayType>(WeatherDisplayType.Hour);
@@ -16,7 +18,7 @@ const App = () => {
     }
 
     return (
-        <div>
+        <LocalizationProvider dateAdapter={AdapterDayjs}>
             <Dashboard>
                 <Grid item xs={12} md={6}>
                     <Grid container spacing={2}>
@@ -38,7 +40,7 @@ const App = () => {
                     </Grid>
                 </Grid>
             </Dashboard>
-        </div>
+        </LocalizationProvider>
     );
 }
 
