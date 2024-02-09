@@ -46,20 +46,7 @@ const Tasks: React.FC<Properties> = () => {
     const apiUrl = 'api/google/tasks';
 
     React.useEffect(() => {
-        axios.get(apiUrl)
-            .then((response) => {
-                setData(response.data);
-            })
-            .catch((error) => {
-                if (error.response && error.response.status === 401) {
-                    updateTokenValidity(false);
-                }
-
-                setError(error.message);
-            })
-            .finally(() => {
-                setLoading(false);
-            });
+        getTaskList();
     }, []);
 
     const formatDate = (date: string): string => {
@@ -87,6 +74,24 @@ const Tasks: React.FC<Properties> = () => {
         updateTask(task);
     };
 
+    const getTaskList = (): void => {
+        setLoading(true);
+        axios.get(apiUrl)
+            .then((response) => {
+                setData(response.data);
+            })
+            .catch((error) => {
+                if (error.response && error.response.status === 401) {
+                    updateTokenValidity(false);
+                }
+
+                setError(error.message);
+            })
+            .finally(() => {
+                setLoading(false);
+            });
+    }
+
     const updateTask = (task: GoogleTask): void => {
         setLoading(true);
 
@@ -109,8 +114,8 @@ const Tasks: React.FC<Properties> = () => {
         if (task.id == null) {
             setLoading(true);
             axios.post(apiUrl, task)
-                .then((response) => {
-                    setData(response.data);
+                .then(() => {
+                    getTaskList();
                     handleCloseDialog();
                 }).catch((error) => {
                     setError(error.message);
@@ -147,7 +152,7 @@ const Tasks: React.FC<Properties> = () => {
                 <IconButton color="primary" disabled={loading} onClick={handleModifyTask()}>
                     <AddIcon />
                 </IconButton>
-                <IconButton color="primary" disabled={loading}>
+                <IconButton color="primary" disabled={loading} onClick={() => getTaskList()}>
                     <RefreshIcon />
                 </IconButton>
             </>

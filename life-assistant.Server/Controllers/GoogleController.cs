@@ -3,11 +3,11 @@ using Google.Apis.Services;
 using Microsoft.AspNetCore.Mvc;
 using Google.Apis.Tasks.v1;
 using Google;
-using System.Text;
 using Newtonsoft.Json;
 using Google.Apis.Auth.OAuth2.Responses;
 using Google.Apis.Util.Store;
 using Google.Apis.Auth.OAuth2.Flows;
+using System.Globalization;
 
 namespace server.Controllers
 {
@@ -19,6 +19,7 @@ namespace server.Controllers
         private readonly IConfiguration _config;
         private readonly string clientId;
         private readonly string clientSecret;
+        private readonly string tasklistId;
 
         public GoogleController(ILogger<GoogleController> logger, IConfiguration config)
         {
@@ -26,6 +27,7 @@ namespace server.Controllers
             _config = config;
             clientId = _config["GOOGLE_CLIENT_ID"];
             clientSecret = _config["GOOGLE_CLIENT_SECRET"];
+            tasklistId = _config["GOOGLE_TASKLIST_ID"];
         }
 
         [HttpPost("authorize")]
@@ -75,50 +77,88 @@ namespace server.Controllers
         }
 
         [HttpGet("tasks")]
-        public async Task<IActionResult> GetTasks()
+        [TokenValidation]
+        public ActionResult<IList<Task>> GetTasks()
         {
-            string accessToken = HttpContext.Session.GetString("GoogleAccessToken");
-            string refreshToken = HttpContext.Session.GetString("GoogleRefreshToken");
-
-            if (string.IsNullOrEmpty(accessToken))
+            return PerformGoogleTasksApiAction(service =>
             {
-                return Unauthorized("Token expired.");
-            }
+                var request = service.Tasks.List(tasklistId);
+                request.MaxResults = 20;
+                request.ShowCompleted = true;
+                var result = request.Execute();
+                var orderedTasks = result.Items
+                    .OrderBy(task => DateTime.Parse(task.Due))
+                    .ThenBy(task => task.Title)
+                    .ToList();
 
-            var flow = new GoogleAuthorizationCodeFlow(new GoogleAuthorizationCodeFlow.Initializer
-            {
-                ClientSecrets = new ClientSecrets
-                {
-                    ClientId = clientId,
-                    ClientSecret = clientSecret
-                },
-                Scopes = new string[] { TasksService.Scope.TasksReadonly },
-                DataStore = new FileDataStore("Store")
+                return orderedTasks;
             });
+        }
 
-            var token = new TokenResponse
+        [HttpPost("tasks")]
+        [TokenValidation]
+        public ActionResult<Task> InsertTask([FromBody] Google.Apis.Tasks.v1.Data.Task task)
+        {
+            task.Due = ConvertToLocalTime(task.Due);
+            return PerformGoogleTasksApiAction(service =>
             {
-                AccessToken = accessToken,
-                RefreshToken = refreshToken
-            };
+                var result = service.Tasks.Insert(task, tasklistId).Execute();
+                return result;
+            });
+        }
 
+        [HttpPut("tasks")]
+        [TokenValidation]
+        public ActionResult UpdateTask([FromBody] Google.Apis.Tasks.v1.Data.Task task)
+        {
+            task.Due = ConvertToLocalTime(task.Due);
+            return PerformGoogleTasksApiAction(service =>
+            {
+                var result = service.Tasks.Update(task, tasklistId, task.Id).Execute();
+                return result;
+            });
+        }
+
+        [HttpDelete("tasks/{id}")]
+        [TokenValidation]
+        public ActionResult DeleteTask(string id)
+        {
+            return PerformGoogleTasksApiAction(service =>
+            {
+                var result = service.Tasks.Delete(tasklistId, id).Execute();
+                return Ok("Deleted " + id);
+            });
+        }
+
+        private ActionResult PerformGoogleTasksApiAction(Func<TasksService, object> action)
+        {
             try
             {
+                var (accessToken, refreshToken) = TokenValidationAttribute.GetTokensFromSession(HttpContext);
+                var flow = new GoogleAuthorizationCodeFlow(new GoogleAuthorizationCodeFlow.Initializer
+                {
+                    ClientSecrets = new ClientSecrets
+                    {
+                        ClientId = clientId,
+                        ClientSecret = clientSecret
+                    },
+                    Scopes = new string[] { TasksService.Scope.Tasks, TasksService.Scope.TasksReadonly },
+                    DataStore = new FileDataStore("Store")
+                });
+
+                var token = new TokenResponse
+                {
+                    AccessToken = accessToken,
+                    RefreshToken = refreshToken
+                };
+
                 var cred = new UserCredential(flow, "user", token);
                 var service = new TasksService(new BaseClientService.Initializer
                 {
                     HttpClientInitializer = cred,
                 });
 
-                var request = service.Tasks.List(_config["GOOGLE_TASKLIST_ID"]);
-                request.MaxResults = 20;
-                request.ShowCompleted = true;
-                var result = request.Execute();
-                var orderedTasks = result.Items
-                    .OrderBy(task => DateTime.Parse(task.Due))
-                    .ToList();
-
-                return Ok(orderedTasks);
+                return Ok(action(service));
             }
             catch (GoogleApiException ex)
             {
@@ -128,6 +168,13 @@ namespace server.Controllers
             {
                 return BadRequest($"Error: {ex.Message}");
             }
+        }
+
+        private string ConvertToLocalTime(string dateStr)
+        {
+            DateTime utcDateTime = DateTime.ParseExact(dateStr, "yyyy-MM-ddTHH:mm:ss.fffZ", CultureInfo.InvariantCulture, DateTimeStyles.AdjustToUniversal);
+            DateTime localTime = TimeZoneInfo.ConvertTimeFromUtc(utcDateTime, TimeZoneInfo.FindSystemTimeZoneById("FLE Standard Time"));
+            return localTime.ToString("yyyy-MM-ddTHH:mm:ss.fffZ");
         }
     }
 }
