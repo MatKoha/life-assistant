@@ -4,8 +4,6 @@ import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import timezone from 'dayjs/plugin/timezone';
 
-import './styles.scss';
-
 import {
     Alert,
     Checkbox,
@@ -16,8 +14,9 @@ import {
     ListItemButton,
     ListItemSecondaryAction,
     ListItemText,
-    Snackbar
+    Snackbar,
 } from '@mui/material';
+
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
 import RefreshIcon from '@mui/icons-material/Refresh';
@@ -27,6 +26,9 @@ import { GoogleTask } from '../../Api/Typings/Google';
 import { TaskStatus } from '../../enums';
 import DashboardItem from '../Dashboard/DashboardItem';
 import TaskForm from './TaskForm';
+import { useGoogleAuthContext } from './GoogleOAuthProvider';
+
+import './styles.scss';
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -40,29 +42,25 @@ const Tasks: React.FC<Properties> = () => {
     const [data, setData] = React.useState<GoogleTask[]>([]);
     const [error, setError] = React.useState<string | null>();
     const [modifyItem, setModifyItem] = React.useState<GoogleTask | null>(null);
+    const { updateTokenValidity } = useGoogleAuthContext();
     const apiUrl = 'api/google/tasks';
 
     React.useEffect(() => {
-        fetchTasks();
-        //axios.get(apiUrl)
-        //    .then((response) => {
-        //        setData(response.data);
-        //    })
-        //    .catch((error) => {
-        //        setError(error.message);
-        //    })
-        //    .finally(() => {
-        //        setLoading(false);
-        //    });
+        axios.get(apiUrl)
+            .then((response) => {
+                setData(response.data);
+            })
+            .catch((error) => {
+                if (error.response && error.response.status === 401) {
+                    updateTokenValidity(false);
+                }
+
+                setError(error.message);
+            })
+            .finally(() => {
+                setLoading(false);
+            });
     }, []);
-
-
-    const fetchTasks = async () => {
-        const response = await fetch(apiUrl);
-        const data = await response.json();
-        console.log(data);
-    }
-
 
     const formatDate = (date: string): string => {
         const d = dayjs(date).utc();

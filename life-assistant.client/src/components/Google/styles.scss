@@ -1,3 +1,7 @@
+.hidden {
+    visibility: hidden;
+}
+
 .datePicker {
     width: 100%;
 }
@@ -8,4 +12,8 @@
 
 .dialog {
     max-width: 400px !important;
+}
+
+.oauth-btn {
+    margin: 16px;
 }

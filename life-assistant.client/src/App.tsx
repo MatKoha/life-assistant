@@ -5,10 +5,10 @@ import Weather from './components/Weather';
 import './App.css';
 import { Grid, ToggleButton, ToggleButtonGroup } from '@mui/material';
 import { WeatherDisplayType } from './enums';
-import Tasks from './components/Tasks';
+import Tasks from './components/Google/Tasks';
+import GoogleOAuthProvider from './components/Google/GoogleOAuthProvider';
 
 const App = () => {
-
     const [weatherType, setWeatherType] = useState<WeatherDisplayType>(WeatherDisplayType.Hour);
 
     const handleWeatherDisplayType = (_event: React.MouseEvent<HTMLElement>, value: WeatherDisplayType) => {
@@ -30,9 +30,11 @@ const App = () => {
                                 <Weather type={weatherType} />
                             </DashboardItem>
                         </Grid>
-                        <Grid item xs={12}>
-                            <Tasks />
-                        </Grid>
+                        <GoogleOAuthProvider>
+                            <Grid item xs={12}>
+                                <Tasks />
+                            </Grid>
+                        </GoogleOAuthProvider>
                     </Grid>
                 </Grid>
             </Dashboard>
