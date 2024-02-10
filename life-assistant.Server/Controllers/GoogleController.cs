@@ -9,8 +9,9 @@ using Google.Apis.Util.Store;
 using Google.Apis.Auth.OAuth2.Flows;
 using System.Globalization;
 using Google.Apis.Calendar.v3;
+using Task = Google.Apis.Tasks.v1.Data.Task;
 
-namespace server.Controllers
+namespace life_assistant.Server.Controllers
 {
     [ApiController]
     [Route("api/google")]
@@ -160,7 +161,7 @@ namespace server.Controllers
 
         [HttpPut("tasks")]
         [TokenValidation]
-        public ActionResult UpdateTask([FromBody] Google.Apis.Tasks.v1.Data.Task task)
+        public ActionResult UpdateTask([FromBody] Task task)
         {
             task.Due = ConvertToLocalTime(task.Due);
             return PerformGoogleTasksApiAction(service =>
