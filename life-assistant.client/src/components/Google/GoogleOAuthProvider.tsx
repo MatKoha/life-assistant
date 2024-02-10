@@ -22,7 +22,7 @@ export const GoogleOAuthProvider: React.FC<GoogleOAuthProviderProps> = ({ childr
 
     const googleOAuthClient = google.accounts.oauth2.initCodeClient({
         client_id: '630199630528-pd7ocii15jd790bhl7hsnjagd7bvi1pn.apps.googleusercontent.com',
-        scope: 'https://www.googleapis.com/auth/tasks https://www.googleapis.com/auth/tasks.readonly',
+        scope: 'https://www.googleapis.com/auth/tasks https://www.googleapis.com/auth/tasks.readonly https://www.googleapis.com/auth/calendar.readonly',
         ux_mode: 'popup',
         callback: (response) => {
             const xhr = new XMLHttpRequest();

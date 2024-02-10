@@ -17,3 +17,25 @@
 .oauth-btn {
     margin: 16px;
 }
+
+.card {
+    flex-grow: 1;
+    margin: 4px;
+    min-width: calc(50% - 16px);
+    box-sizing: border-box;
+}
+
+.itemRow {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.MuiCardContent-root {
+    padding: 0px 16px 8px !important;
+}
+
+.container {
+    display: flex;
+    flex-wrap: wrap;
+}

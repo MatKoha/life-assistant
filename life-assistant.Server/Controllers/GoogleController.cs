@@ -8,6 +8,7 @@ using Google.Apis.Auth.OAuth2.Responses;
 using Google.Apis.Util.Store;
 using Google.Apis.Auth.OAuth2.Flows;
 using System.Globalization;
+using Google.Apis.Calendar.v3;
 
 namespace server.Controllers
 {
@@ -20,6 +21,7 @@ namespace server.Controllers
         private readonly string clientId;
         private readonly string clientSecret;
         private readonly string tasklistId;
+        private readonly string calendarId;
 
         public GoogleController(ILogger<GoogleController> logger, IConfiguration config)
         {
@@ -28,6 +30,7 @@ namespace server.Controllers
             clientId = _config["GOOGLE_CLIENT_ID"];
             clientSecret = _config["GOOGLE_CLIENT_SECRET"];
             tasklistId = _config["GOOGLE_TASKLIST_ID"];
+            calendarId = _config["GOOGLE_CALENDAR_ID"];
         }
 
         [HttpPost("authorize")]
@@ -74,6 +77,54 @@ namespace server.Controllers
         {
             return Request.Headers.TryGetValue("X-Requested-With", out var headerValues) &&
                    headerValues.Contains("XmlHttpRequest");
+        }
+
+        [HttpGet("calendar-events")]
+        [TokenValidation]
+        public async Task<IActionResult> GetCalendarEvents()
+        {
+            var (accessToken, refreshToken) = TokenValidationAttribute.GetTokensFromSession(HttpContext);
+            var flow = new GoogleAuthorizationCodeFlow(new GoogleAuthorizationCodeFlow.Initializer
+            {
+                ClientSecrets = new ClientSecrets
+                {
+                    ClientId = clientId,
+                    ClientSecret = clientSecret
+                },
+                Scopes = new string[] { CalendarService.Scope.CalendarReadonly },
+                DataStore = new FileDataStore("Store")
+            });
+
+            var token = new TokenResponse
+            {
+                AccessToken = accessToken,
+                RefreshToken = refreshToken
+            };
+
+            var cred = new UserCredential(flow, "user", token);
+            var service = new CalendarService(new BaseClientService.Initializer
+            {
+                HttpClientInitializer = cred,
+            });
+
+            // Define parameters of request.
+            var request = service.Events.List(calendarId);
+            request.TimeMin = DateTime.Now.Date;
+            request.SingleEvents = true;
+            request.MaxResults = 20;
+            request.OrderBy = EventsResource.ListRequest.OrderByEnum.StartTime;
+            request.ShowDeleted = false;
+
+            // List events.
+            var events = await request.ExecuteAsync();
+
+            if (events.Items == null || events.Items.Count == 0)
+            {
+                return Ok(new List<ApiGoogleCalendarEvent>());
+            }
+
+            var list = events.Items.Select(e => new ApiGoogleCalendarEvent(e)).ToList();
+            return Ok(list);
         }
 
         [HttpGet("tasks")]
