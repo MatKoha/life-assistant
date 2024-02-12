@@ -1,0 +1,28 @@
+.title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-right: 16px;
+}
+
+.heart {
+    color: #1976d2;
+}
+.heartbeat {
+    animation: heartbeat 1s forwards;
+}
+
+@keyframes heartbeat {
+    0% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.4);
+        color: #1955d2;
+    }
+
+    100% {
+        transform: scale(1);
+    }
+}

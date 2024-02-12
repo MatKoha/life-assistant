@@ -23,6 +23,9 @@ import FavoriteIcon from '@mui/icons-material/Favorite';
 import TaskIcon from '@mui/icons-material/Task';
 import SettingsIcon from '@mui/icons-material/Settings';
 import WifiIcon from '@mui/icons-material/Wifi';
+import axios from 'axios';
+import './styles.scss';
+import dayjs from 'dayjs';
 
 const drawerWidth: number = 240;
 
@@ -79,9 +82,39 @@ const defaultTheme = createTheme();
 
 const Dashboard: React.FC<Properties> = (props) => {
     const [open, setOpen] = React.useState(false);
+    const [status, setStatus] = React.useState(false);
+    const [time, setTime] = React.useState(dayjs().format('DD.MM.YYYY HH:mm'));
     const toggleDrawer = () => {
         setOpen(!open);
     };
+
+    React.useEffect(() => {
+        const fetchStatus = async () => {
+            axios.get('/api/status')
+                .then(() => {
+                    setStatus(true);
+                })
+                .catch(() => {
+                    console.log("Could not fetch status");
+                })
+                .finally(() => {
+                    setTimeout(() => {
+                        setStatus(false);
+                    }, 2000);
+                });
+
+            const currentDate = dayjs().format('DD.MM.YYYY HH:mm');
+            setTime(currentDate);
+        };
+
+        fetchStatus();
+
+        const intervalId = setInterval(() => {
+            fetchStatus();
+        }, 5000);
+
+        return () => clearInterval(intervalId);
+    }, []); 
 
     return (
         <ThemeProvider theme={defaultTheme}>
@@ -111,8 +144,10 @@ const Dashboard: React.FC<Properties> = (props) => {
                             color="inherit"
                             noWrap
                             sx={{ flexGrow: 1 }}
+                            className="title"
                         >
-                            Dashboard
+                            {time} 
+                            <FavoriteIcon className={status ? "heart heartbeat" : "heart"} />
                         </Typography>
                     </Toolbar>
                 </AppBar>
