@@ -37,10 +37,11 @@ namespace life_assistant.Server.Controllers
         }
 
         [HttpPut("home-state")]
-        public async Task<IActionResult> SetHomeState([FromBody] ApiHueHomeState request)
+        public async Task<IActionResult> TurnOffLights()
         {
-            string url = $"https://{_bridgeAddress}/clip/v2/resource/grouped_light/{_config["HOME_HOME_ID"]}";
-            return await MakeRequestAsync(HttpMethod.Put, url, new { on = new { on = request.LightState } });
+            // todo: individual lights, light groups, etc. Restrict test users from messing with lights
+            string url = $"https://{_bridgeAddress}/clip/v2/resource/grouped_light/{_config["HUE_HOME_ID"]}";
+            return await MakeRequestAsync(HttpMethod.Put, url, new { on = new { on = false } });
         }
 
         #endregion

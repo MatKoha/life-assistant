@@ -7,6 +7,7 @@ import { Grid, ToggleButton, ToggleButtonGroup } from '@mui/material';
 import { WeatherDisplayType } from './enums';
 import Tasks from './components/Google/Tasks';
 import Calendar from './components/Google/Calendar';
+import Hue from './components/Hue/Hue';
 import GoogleOAuthProvider from './components/Google/GoogleOAuthProvider';
 import { LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs'
@@ -47,15 +48,14 @@ const App = () => {
                 </Grid>
                 <Grid item xs={12} md={6}>
                     <Grid container spacing={2}>
-   
                         <Grid item xs={12}>
-                            <DashboardItem title='Polar'>
-                                Polar
+                            <DashboardItem title='Hue'>
+                                <Hue />
                             </DashboardItem>
                         </Grid>
                         <Grid item xs={12}>
-                            <DashboardItem title='Hue'>
-                                Hue
+                            <DashboardItem title='Polar'>
+                                Polar
                             </DashboardItem>
                         </Grid>
                     </Grid>
