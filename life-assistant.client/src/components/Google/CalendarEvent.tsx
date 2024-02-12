@@ -13,43 +13,47 @@ import { CardHeader } from '@mui/material';
 dayjs.locale('fi');
 
 interface Properties {
-  data: ApiGoogleCalendarEvent;
+    data: ApiGoogleCalendarEvent;
 }
 
 const CalendarEvent: React.FC<Properties> = (props) => {
 
-  const formatDateTimeRange = (start: Date, end: Date): string => {
-    const startDayjs = dayjs(start);
-    const endDayjs = dayjs(end);
+    const formatDateTimeRange = (start: Date, end: Date): string => {
+        if (start == null) {
+            return "Koko päivä";
+        }
 
-    const dateFormat = 'D. MMMM YYYY, HH:mm';
+        const startDayjs = dayjs(start);
+        const endDayjs = dayjs(end);
 
-    if (startDayjs.isSame(endDayjs, 'day')) {
-      return `${startDayjs.format(dateFormat)} - ${endDayjs.format('HH:mm')}`;
-    } else {
-      return `${startDayjs.format(dateFormat)} - ${endDayjs.format(dateFormat)}`;
+        const dateFormat = 'D. MMMM YYYY, HH:mm';
+
+        if (startDayjs.isSame(endDayjs, 'day')) {
+            return `${startDayjs.format(dateFormat)} - ${endDayjs.format('HH:mm')}`;
+        } else {
+            return `${startDayjs.format(dateFormat)} - ${endDayjs.format(dateFormat)}`;
+        }
     }
-  }
 
-  const computedTitle = props.data.name ? props.data.name : 'Ei otsikkoa';
+    const computedTitle = props.data.name ? props.data.name : 'Ei otsikkoa';
 
-  return (
-    <Card key={props.data.id} className='card' elevation={3}>
-      <CardHeader title={<Typography variant="h6">{computedTitle}</Typography>}  subheader={formatDateTimeRange(props.data.start, props.data.end)} />
-      <CardContent>
-        {props.data.location && (
-          <Typography className="itemRow">
-            <Place fontSize="small" color="secondary" /> {props.data.location}
-          </Typography>
-        )}
-        {props.data.description && (
-          <Typography className="itemRow">
-            <Description fontSize="small" /> {props.data.description}
-          </Typography>
-        )}
-      </CardContent>
-    </Card>
-  )
+    return (
+        <Card key={props.data.id} className='card' elevation={3}>
+            <CardHeader title={<Typography variant="h6">{computedTitle}</Typography>} subheader={formatDateTimeRange(props.data.start, props.data.end)} />
+            <CardContent>
+                {props.data.location && (
+                    <Typography className="itemRow">
+                        <Place fontSize="small" color="secondary" /> {props.data.location}
+                    </Typography>
+                )}
+                {props.data.description && (
+                    <Typography className="itemRow">
+                        <Description fontSize="small" /> {props.data.description}
+                    </Typography>
+                )}
+            </CardContent>
+        </Card>
+    )
 }
 
 export default CalendarEvent;
