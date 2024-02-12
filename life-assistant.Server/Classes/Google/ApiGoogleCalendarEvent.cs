@@ -15,6 +15,10 @@ public class ApiGoogleCalendarEvent
 
     [JsonProperty("end")]
     public DateTime? End { get; set; }
+    [JsonProperty("endDate")]
+    public string EndDate { get; set; }
+    [JsonProperty("startDate")]
+    public string StartDate { get; set; }
 
     [JsonProperty("location")]
     public string Location { get; set; }
@@ -27,5 +31,7 @@ public class ApiGoogleCalendarEvent
         this.Start = calendarEvent.Start.DateTime;
         this.End = calendarEvent.End.DateTime;
         this.Location = calendarEvent.Location;
+        this.EndDate = calendarEvent.End.Date;
+        this.StartDate = calendarEvent.Start.Date;
     }
 }

@@ -1,4 +1,4 @@
-import dayjs from 'dayjs';
+Ôªøimport dayjs from 'dayjs';
 import 'dayjs/locale/fi';
 import * as React from 'react';
 import { ApiGoogleCalendarEvent } from '../../Api/Typings/Google';
@@ -18,20 +18,22 @@ interface Properties {
 
 const CalendarEvent: React.FC<Properties> = (props) => {
 
-    const formatDateTimeRange = (start: Date, end: Date): string => {
-        if (start == null) {
-            return "Koko p‰iv‰";
+    const formatDateTimeRange = (): string => {
+
+        if (props.data.start == null) {
+            const endDate = dayjs(props.data.startDate, { format: 'YYYY-MM-DD' }).format('D. MMMM YYYY');
+            return `${endDate} - Koko p√§iv√§`;
         }
 
-        const startDayjs = dayjs(start);
-        const endDayjs = dayjs(end);
+        const start = dayjs(props.data.start);
+        const end = dayjs(props.data.end);
 
         const dateFormat = 'D. MMMM YYYY, HH:mm';
 
-        if (startDayjs.isSame(endDayjs, 'day')) {
-            return `${startDayjs.format(dateFormat)} - ${endDayjs.format('HH:mm')}`;
+        if (start.isSame(end, 'day')) {
+            return `${start.format(dateFormat)} - ${end.format('HH:mm')}`;
         } else {
-            return `${startDayjs.format(dateFormat)} - ${endDayjs.format(dateFormat)}`;
+            return `${start.format(dateFormat)} - ${end.format(dateFormat)}`;
         }
     }
 
@@ -39,7 +41,7 @@ const CalendarEvent: React.FC<Properties> = (props) => {
 
     return (
         <Card key={props.data.id} className='card' elevation={3}>
-            <CardHeader title={<Typography variant="h6">{computedTitle}</Typography>} subheader={formatDateTimeRange(props.data.start, props.data.end)} />
+            <CardHeader title={<Typography variant="h6">{computedTitle}</Typography>} subheader={formatDateTimeRange()} />
             <CardContent>
                 {props.data.location && (
                     <Typography className="itemRow">
