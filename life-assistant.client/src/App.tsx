@@ -1,7 +1,7 @@
 ﻿import { useState } from 'react';
-import Dashboard from './components/Dashboard';
+import Dashboard from './components/Dashboard/Dashboard';
 import DashboardItem from './components/Dashboard/DashboardItem';
-import Weather from './components/Weather';
+import Weather from './components/Weather/Weather';
 import './App.css';
 import { Grid, ToggleButton, ToggleButtonGroup } from '@mui/material';
 import { WeatherDisplayType } from './enums';

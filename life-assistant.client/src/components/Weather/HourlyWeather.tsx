@@ -2,7 +2,7 @@ import * as React from 'react';
 import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from '@mui/material';
 import dayjs from 'dayjs';
 import { ApiHourWeather } from '../../Api/Typings/Weather';
-import './HourlyWeather.scss';
+import './styles.scss';
 
 interface Properties {
     children?: React.ReactNode;

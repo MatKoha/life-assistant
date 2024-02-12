@@ -23,3 +23,29 @@
 .MuiCardContent-root {
     margin-top: -8px;
 }
+
+.hourlyWeather {
+    max-height: 320px;
+}
+
+.iconText {
+    position: relative;
+
+    span {
+        position: absolute;
+        top: 4px;
+        left: calc(50% + -16px);
+        transform: translateX(-50%);
+        font-size: 10px;
+        font-weight: 700;
+    }
+}
+
+.bigIcon {
+    height: 48px;
+    width: 48px;
+}
+
+.card {
+    margin-right: 8px;
+}

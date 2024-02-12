@@ -6,7 +6,7 @@ import WaterDropIcon from '@mui/icons-material/WaterDrop';
 import { WiSunrise, WiMoonrise  } from "weather-icons-react";
 import { ApiDayWeather } from '../../Api/Typings/Weather';
 import ThermostatIcon from '@mui/icons-material/ThermostatOutlined';
-import './DailyWeather.scss';
+import './styles.scss';
 
 interface Properties {
   children?: React.ReactNode;

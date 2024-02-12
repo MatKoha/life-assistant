@@ -2,7 +2,7 @@ import * as React from 'react';
 import Typography from '@mui/material/Typography';
 import { Card, CardContent, CardHeader, Collapse, IconButton } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import './DashboardItem.scss';
+import './styles.scss';
 
 interface Properties {
     children?: React.ReactNode;
