@@ -39,7 +39,6 @@ const Weather: React.FC<Properties> = (props) => {
         if (weatherData) {
             const now = dayjs();
             const timeDifference = now.diff(weatherData.lastUpdate, 'minute');
-            console.log(now, weatherData.lastUpdate, timeDifference);
             if (timeDifference < 15) {
                 if (props.type === WeatherDisplayType.Day) {
                     setDailyData(weatherData.data as ApiDayWeather[]);
@@ -53,6 +52,10 @@ const Weather: React.FC<Properties> = (props) => {
         } else {
             fetchWeatherData(props.type === WeatherDisplayType.Day ? 'daily' : 'hourly');
         }
+
+        const intervalId = setInterval(pollWeatherData, 60000);
+
+        return () => clearInterval(intervalId);
     }, [props.type]);
 
     const fetchWeatherData = (timePeriod: string) => {
@@ -75,6 +78,15 @@ const Weather: React.FC<Properties> = (props) => {
             .finally(() => {
                 setLoading(false);
             });
+    };
+
+    const pollWeatherData = () => {
+        console.log("jeah");
+        const now = dayjs();
+
+        if (now.minute() === 1 && now.minute() === 3) {
+            fetchWeatherData(props.type === WeatherDisplayType.Day ? 'daily' : 'hourly');
+        }
     };
 
     const getTypeIcon = (type: WeatherType, isDayLight: boolean, size: number = 24) => {
