@@ -81,7 +81,6 @@ const Weather: React.FC<Properties> = (props) => {
     };
 
     const pollWeatherData = () => {
-        console.log("jeah");
         const now = dayjs();
 
         if (now.minute() === 1 && now.minute() === 3) {
@@ -94,6 +93,8 @@ const Weather: React.FC<Properties> = (props) => {
             case WeatherType.Sunny:
                 return <WiDaySunny size={size} />;
             case WeatherType.MostlyCloudyWithShowers:
+            case WeatherType.RainAndSnow:
+            case WeatherType.FreezingRain:
                 return <WiRainMix size={size} />;
             case WeatherType.PartlySunnyWithShowers:
                 return isDayLight
