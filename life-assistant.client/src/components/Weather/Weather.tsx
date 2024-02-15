@@ -1,7 +1,7 @@
 import * as React from 'react';
 import './styles.scss';
 import { CircularProgress, Grid } from '@mui/material';
-import dayjs from 'dayjs';
+import dayjs, { Dayjs } from 'dayjs';
 import SunnyIcon from '@mui/icons-material/WbSunnyOutlined';
 import MoonIcon from '@mui/icons-material/ModeNightOutlined';
 import { WiNightAltCloudy, WiDaySunnyOvercast, WiNightAltPartlyCloudy, WiDayCloudy, WiCloudy, WiDayRainMix, WiNightAltRainMix, WiRain, WiRainMix, WiDaySunny, WiShowers, WiDayCloudyHigh } from "weather-icons-react";
@@ -19,7 +19,10 @@ interface Properties {
     type: WeatherDisplayType;
 }
 
-
+interface StoredWeatherData {
+    data: ApiDayWeather[] | ApiHourWeather[],
+    lastUpdate: Dayjs,
+}
 
 const Weather: React.FC<Properties> = (props) => {
     const [loading, setLoading] = React.useState<boolean>(true);
@@ -28,14 +31,31 @@ const Weather: React.FC<Properties> = (props) => {
     const [error, setError] = React.useState<string>();
 
     useEffect(() => {
-        if (props.type === WeatherDisplayType.Day) {
-            fetchWeatherData('daily');
+        setLoading(true);
+        const storageKey = props.type === WeatherDisplayType.Day ? 'dailyWeatherData' : 'hourlyWeatherData';
+        const storedData = localStorage.getItem(storageKey);
+        const weatherData: StoredWeatherData = storedData ? JSON.parse(storedData) : null;
+
+        if (weatherData) {
+            const now = dayjs();
+            const timeDifference = now.diff(weatherData.lastUpdate, 'minute');
+            console.log(now, weatherData.lastUpdate, timeDifference);
+            if (timeDifference < 15) {
+                if (props.type === WeatherDisplayType.Day) {
+                    setDailyData(weatherData.data as ApiDayWeather[]);
+                } else {
+                    setHourlyData(weatherData.data as ApiHourWeather[]);
+                }
+                setLoading(false);
+            } else {
+                fetchWeatherData(props.type === WeatherDisplayType.Day ? 'daily' : 'hourly');
+            }
         } else {
-            fetchWeatherData('hourly');
+            fetchWeatherData(props.type === WeatherDisplayType.Day ? 'daily' : 'hourly');
         }
     }, [props.type]);
 
-    const fetchWeatherData = async (timePeriod: string) => {
+    const fetchWeatherData = (timePeriod: string) => {
         setLoading(true);
         const apiUrl = `/api/weather/${timePeriod}/133091`;
 
@@ -43,12 +63,14 @@ const Weather: React.FC<Properties> = (props) => {
             .then((response) => {
                 if (timePeriod === 'daily') {
                     setDailyData(response.data);
+                    localStorage.setItem('dailyWeatherData', JSON.stringify({ data: response.data, lastUpdate: dayjs() }));
                 } else {
                     setHourlyData(response.data);
+                    localStorage.setItem('hourlyWeatherData', JSON.stringify({ data: response.data, lastUpdate: dayjs()}));
                 }
             })
             .catch((error) => {
-                setError(error.response.data);
+                setError(error.response?.data || 'An error occurred.');
             })
             .finally(() => {
                 setLoading(false);
