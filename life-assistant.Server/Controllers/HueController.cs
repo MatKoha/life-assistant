@@ -1,7 +1,5 @@
-using life_assistant.Server.Classes.Hue;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
-using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 
@@ -12,113 +10,226 @@ namespace life_assistant.Server.Controllers
     public class HueController : ControllerBase
     {
         private readonly ILogger<HueController> _logger;
-        private readonly X509Certificate2 _caCertificate;
         private readonly IConfiguration _config;
-        private readonly string _bridgeAddress;
+        private readonly string _apiUrl = "https://api.meethue.com/route/clip/v2";
 
         public HueController(ILogger<HueController> logger, IConfiguration config)
         {
             _logger = logger;
             _config = config;
-            _bridgeAddress = _config["HUE_BRIDGE_ADDRESS"];
-
-            string certText = Uri.UnescapeDataString(_config["HUE_CERT"]);
-            byte[] certificateData = Convert.FromBase64String(certText);
-            _caCertificate = new X509Certificate2(certificateData);
         }
 
         #region Routes
 
+        [HueTokenValidation]
         [HttpGet("devices")]
         public async Task<IActionResult> GetDevices()
         {
-            string url = $"https://{_bridgeAddress}/clip/v2/resource/device";
-            return await MakeRequestAsync(HttpMethod.Get, url);
+            var result = await GetHueResource("resource/device");
+            return Ok();
         }
 
+        [HueTokenValidation]
         [HttpPut("home-state")]
         public async Task<IActionResult> TurnOffLights()
         {
-            // todo: individual lights, light groups, etc. Restrict test users from messing with lights
-            string url = $"https://{_bridgeAddress}/clip/v2/resource/grouped_light/{_config["HUE_HOME_ID"]}";
-            return await MakeRequestAsync(HttpMethod.Put, url, new { on = new { on = false } });
+            var result = await GetHueResource($"/resource/grouped_light/{_config["HUE_HOME_ID"]}");
+            return Ok();
+        }
+
+        [HttpPost("token/{code}")]
+        public async Task<IActionResult> GetToken(string code)
+        {
+            var clientId = _config["HUE_CLIENT_ID"];
+            var clientSecret = _config["HUE_CLIENT_SECRET"];
+            string base64Credentials = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{clientId}:{clientSecret}"));
+            string apiUrl = "https://api.meethue.com/v2/oauth2/token";
+            var content = new StringContent($"grant_type=authorization_code&code={code}", Encoding.UTF8, "application/x-www-form-urlencoded");
+
+            using (HttpClient client = new HttpClient())
+            {
+                client.DefaultRequestHeaders.Add("Authorization", $"Basic {base64Credentials}");
+
+                var response = await client.PostAsync(apiUrl, content);
+                if (response.IsSuccessStatusCode)
+                {
+                    var responseData = await response.Content.ReadAsStringAsync();
+                    var token = JsonConvert.DeserializeObject<HueToken>(responseData);
+                    this.StoreHueToken(token);
+                    return await UpdateHueConfig(token.AccessToken);
+                }
+                else
+                {
+                    return BadRequest(response);
+                }
+            }
+        }
+
+        public class HueApiSuccessResponse
+        {
+            [JsonProperty("success")]
+            public SuccessData Success { get; set; }
+        }
+
+        public class SuccessData
+        {
+            [JsonProperty("username")]
+            public string Username { get; set; }
+        }
+
+
+        public class HueToken
+        {
+            [JsonProperty("access_token")]
+            public string AccessToken { get; set; }
+
+            [JsonProperty("expires_in")]
+            public int ExpiresIn { get; set; }
+
+            [JsonProperty("refresh_token")]
+            public string RefreshToken { get; set; }
+
+            [JsonProperty("token_type")]
+            public string TokenType { get; set; }
         }
 
         #endregion
 
         #region Private Methods
 
-        private HttpClient CreateHttpClient()
+        private async Task<IActionResult> UpdateHueConfig(string accessToken)
         {
-            var handler = new HttpClientHandler();
-            handler.ServerCertificateCustomValidationCallback = ValidateServerCertificate;
+            string apiUrl = "https://api.meethue.com/route/api/0/config";
 
-            var httpClient = new HttpClient(handler);
-            httpClient.DefaultRequestHeaders.Add("hue-application-key", _config["HUE_USERNAME"]);
+            using (HttpClient client = new HttpClient())
+            {
+                client.BaseAddress = new Uri(apiUrl);
+                client.DefaultRequestHeaders.Add("Authorization", $"Bearer {accessToken}");
 
-            return httpClient;
+                string jsonPayload = "{\"linkbutton\":true}";
+                var content = new StringContent(jsonPayload, Encoding.UTF8, "application/json");
+
+                HttpResponseMessage response = await client.PutAsync(apiUrl, content);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    return await GenerateApplicationKey(accessToken);
+                }
+            }
+
+            return BadRequest("Could not update Hue config");
         }
 
-        private async Task<IActionResult> MakeRequestAsync(HttpMethod method, string url, object requestBody = null)
+        private async Task<IActionResult> GenerateApplicationKey(string accessToken)
         {
-            try
+            string apiUrl = "https://api.meethue.com/route/api";
+            string applicationName = _config["HUE_APP_NAME"];
+
+            using (HttpClient client = new HttpClient())
             {
-                using (var httpClient = CreateHttpClient())
+                client.BaseAddress = new Uri(apiUrl);
+                client.DefaultRequestHeaders.Add("Authorization", $"Bearer {accessToken}");
+
+                string jsonPayload = $"{{\"devicetype\":\"{applicationName}\"}}";
+                var content = new StringContent(jsonPayload, Encoding.UTF8, "application/json");
+
+                HttpResponseMessage response = await client.PostAsync(apiUrl, content);
+
+                if (response.IsSuccessStatusCode)
                 {
-                    HttpContent httpContent = null;
-                    if (requestBody != null)
+                    var responseData = await response.Content.ReadAsStringAsync();
+                    var keyResults = JsonConvert.DeserializeObject<List<HueApiSuccessResponse>>(responseData);
+                    HttpContext.Session.SetString("HueApplicationKey", keyResults.First().Success.Username);
+                    CookieOptions cookieOptions = new CookieOptions
                     {
-                        var json = JsonConvert.SerializeObject(requestBody);
-                        httpContent = new StringContent(json, Encoding.UTF8, "application/json");
-                    }
+                        HttpOnly = true,
+                        Secure = true,
+                        SameSite = SameSiteMode.Strict,
+                        Expires = DateTime.MaxValue
+                    };
 
-                    HttpResponseMessage response = null;
+                    Response.Cookies.Append("HueApplicationKey", keyResults.First().Success.Username, cookieOptions);
 
-                    if (method == HttpMethod.Get)
-                    {
-                        response = await httpClient.GetAsync(url);
-                    }
-                    else if (method == HttpMethod.Put)
-                    {
-                        response = await httpClient.PutAsync(url, httpContent);
-                    }
-                    else
-                    {
-                        return BadRequest("Unsupported HTTP method");
-                    }
+                    return Ok();
+                }
+
+                return BadRequest("Could not generate Hue app key");
+            }
+        }
+
+        private async Task<IActionResult> RefreshToken()
+        {
+            var clientId = _config["HUE_CLIENT_ID"];
+            var clientSecret = _config["HUE_CLIENT_SECRET"];
+            var token = Request.Cookies["HueRefreshToken"];
+
+            string base64Credentials = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{clientId}:{clientSecret}"));
+            using (HttpClient client = new HttpClient())
+            {
+                var url = "https://api.meethue.com/v2/oauth2/token";
+                client.DefaultRequestHeaders.Add("Authorization", $"Basic {base64Credentials}");
+
+                var requestBody = $"grant_type=refresh_token&refresh_token={token}";
+                var content = new StringContent(requestBody, Encoding.UTF8, "application/x-www-form-urlencoded");
+
+                HttpResponseMessage response = await client.PostAsync(url, content);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var responseData = await response.Content.ReadAsStringAsync();
+                    var newToken = JsonConvert.DeserializeObject<HueToken>(responseData);
+                    this.StoreHueToken(newToken);
+
+                    return Ok();
+                }
+
+                return Unauthorized();
+            }
+        }
+
+        private async Task<ActionResult<string>> GetHueResource(string resourcePath)
+        {
+            using (HttpClient client = new HttpClient())
+            {
+                client.DefaultRequestHeaders.Add("Authorization", $"Bearer {Request.Cookies["HueAccessToken"]}");
+                client.DefaultRequestHeaders.Add("hue-application-key", Request.Cookies["HueApplicationKey"]);
+
+                var response = await client.GetAsync(_apiUrl + $"/{resourcePath}");
+
+                if (response.IsSuccessStatusCode)
+                {
+                    return await response.Content.ReadAsStringAsync();
+                }
+                else if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                {
+                    await RefreshToken();
+
+                    response = await client.GetAsync(_apiUrl + resourcePath);
 
                     if (response.IsSuccessStatusCode)
                     {
-                        var responseData = await response.Content.ReadAsStringAsync();
-                        return Ok(responseData);
+                        return await response.Content.ReadAsStringAsync();
                     }
-                    else
-                    {
-                        return BadRequest(response);
-                    }
+
+                    return Unauthorized();
                 }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, $"An error occurred while making the {method} request.");
-                return StatusCode(500, ex.Message);
+
+                return StatusCode((int)response.StatusCode);
             }
         }
 
-        private bool ValidateServerCertificate(HttpRequestMessage requestMessage, X509Certificate2 certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors)
+        private void StoreHueToken(HueToken token)
         {
-            if (sslPolicyErrors == SslPolicyErrors.None)
-                return true;
-
-            if (chain.ChainStatus.Length > 0 && chain.ChainStatus[0].Status == X509ChainStatusFlags.UntrustedRoot)
+            CookieOptions cookieOptions = new CookieOptions
             {
-                if (certificate.Subject == _caCertificate.Issuer)
-                {
-                    return true;
-                }
-            }
+                HttpOnly = true,
+                Secure = true,
+                SameSite = SameSiteMode.Strict,
+                Expires = DateTime.Now.AddSeconds(token.ExpiresIn)
+            };
 
-            return false;
+            Response.Cookies.Append("HueAccessToken", token.AccessToken, cookieOptions);
+            Response.Cookies.Append("HueRefreshToken", token.RefreshToken, cookieOptions);
         }
 
         #endregion
