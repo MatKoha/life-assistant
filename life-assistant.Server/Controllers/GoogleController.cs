@@ -64,8 +64,7 @@ namespace life_assistant.Server.Controllers
                 {
                     var jsonResult = await response.Content.ReadAsStringAsync();
                     var tokenResponse = JsonConvert.DeserializeObject<GoogleAccessToken>(jsonResult);
-                    HttpContext.Session.SetString("GoogleAccessToken", tokenResponse.AccessToken);
-                    HttpContext.Session.SetString("GoogleRefreshToken", tokenResponse.RefreshToken);
+                    this.StoreGoogleToken(tokenResponse);
 
                     return Ok();
                 }
@@ -81,10 +80,10 @@ namespace life_assistant.Server.Controllers
         }
 
         [HttpGet("calendar-events")]
-        [TokenValidation]
+        [GoogleTokenValidation]
         public async Task<IActionResult> GetCalendarEvents()
         {
-            var (accessToken, refreshToken) = TokenValidationAttribute.GetTokensFromSession(HttpContext);
+            var (accessToken, refreshToken) = GoogleTokenValidationAttribute.GetTokensFromCookie(HttpContext);
             var flow = new GoogleAuthorizationCodeFlow(new GoogleAuthorizationCodeFlow.Initializer
             {
                 ClientSecrets = new ClientSecrets
@@ -129,7 +128,7 @@ namespace life_assistant.Server.Controllers
         }
 
         [HttpGet("tasks")]
-        [TokenValidation]
+        [GoogleTokenValidation]
         public ActionResult<IList<Task>> GetTasks()
         {
             return PerformGoogleTasksApiAction(service =>
@@ -148,10 +147,10 @@ namespace life_assistant.Server.Controllers
         }
 
         [HttpPost("tasks")]
-        [TokenValidation]
+        [GoogleTokenValidation]
         public ActionResult<Task> InsertTask([FromBody] Google.Apis.Tasks.v1.Data.Task task)
         {
-            task.Due = ConvertToLocalTime(task.Due);
+            //task.Due = ConvertToLocalTime(task.Due);
             return PerformGoogleTasksApiAction(service =>
             {
                 var result = service.Tasks.Insert(task, tasklistId).Execute();
@@ -160,10 +159,11 @@ namespace life_assistant.Server.Controllers
         }
 
         [HttpPut("tasks")]
-        [TokenValidation]
+        [GoogleTokenValidation]
         public ActionResult UpdateTask([FromBody] Task task)
         {
-            task.Due = ConvertToLocalTime(task.Due);
+            // crashes. Todo: google uses utc date and sets hours to 00:00:00, causing wrong due dates sometimes 
+            //task.Due = ConvertToLocalTime(task.Due);
             return PerformGoogleTasksApiAction(service =>
             {
                 var result = service.Tasks.Update(task, tasklistId, task.Id).Execute();
@@ -172,7 +172,7 @@ namespace life_assistant.Server.Controllers
         }
 
         [HttpDelete("tasks/{id}")]
-        [TokenValidation]
+        [GoogleTokenValidation]
         public ActionResult DeleteTask(string id)
         {
             return PerformGoogleTasksApiAction(service =>
@@ -186,7 +186,7 @@ namespace life_assistant.Server.Controllers
         {
             try
             {
-                var (accessToken, refreshToken) = TokenValidationAttribute.GetTokensFromSession(HttpContext);
+                var (accessToken, refreshToken) = GoogleTokenValidationAttribute.GetTokensFromCookie(HttpContext);
                 var flow = new GoogleAuthorizationCodeFlow(new GoogleAuthorizationCodeFlow.Initializer
                 {
                     ClientSecrets = new ClientSecrets
@@ -222,11 +222,18 @@ namespace life_assistant.Server.Controllers
             }
         }
 
-        private string ConvertToLocalTime(string dateStr)
+        private void StoreGoogleToken(GoogleAccessToken token)
         {
-            DateTime utcDateTime = DateTime.ParseExact(dateStr, "yyyy-MM-ddTHH:mm:ss.fffZ", CultureInfo.InvariantCulture, DateTimeStyles.AdjustToUniversal);
-            DateTime localTime = TimeZoneInfo.ConvertTimeFromUtc(utcDateTime, TimeZoneInfo.FindSystemTimeZoneById("FLE Standard Time"));
-            return localTime.ToString("yyyy-MM-ddTHH:mm:ss.fffZ");
+            CookieOptions cookieOptions = new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = true,
+                SameSite = SameSiteMode.Strict,
+                Expires = DateTime.Now.AddSeconds(token.ExpiresIn)
+            };
+
+            Response.Cookies.Append("GoogleAccessToken", token.AccessToken, cookieOptions);
+            Response.Cookies.Append("GoogleRefreshToken", token.RefreshToken, cookieOptions);
         }
     }
 }
