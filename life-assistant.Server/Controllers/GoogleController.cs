@@ -7,9 +7,10 @@ using Newtonsoft.Json;
 using Google.Apis.Auth.OAuth2.Responses;
 using Google.Apis.Util.Store;
 using Google.Apis.Auth.OAuth2.Flows;
-using System.Globalization;
 using Google.Apis.Calendar.v3;
 using Task = Google.Apis.Tasks.v1.Data.Task;
+using life_assistant.Server.Classes;
+using System.Net;
 
 namespace life_assistant.Server.Controllers
 {
@@ -35,11 +36,11 @@ namespace life_assistant.Server.Controllers
         }
 
         [HttpPost("authorize")]
-        public async Task<IActionResult> AuthorizePost()
+        public async Task<ApiResponse<bool>> AuthorizePost()
         {
             if (!IsXmlHttpRequest())
             {
-                return BadRequest("Invalid X-Requested-With header.");
+                return ApiResponse.Fail<bool>(HttpStatusCode.BadRequest, "Invalid X-Requested-With header.");
             }
 
             var authorizationCode = Request.Form["code"];
@@ -66,11 +67,11 @@ namespace life_assistant.Server.Controllers
                     var tokenResponse = JsonConvert.DeserializeObject<GoogleAccessToken>(jsonResult);
                     this.StoreGoogleToken(tokenResponse);
 
-                    return Ok();
+                    return ApiResponse.Success(true);
                 }
             }
 
-            return BadRequest("Authorization failed.");
+            return ApiResponse.Fail<bool>(HttpStatusCode.Unauthorized, "Authorization failed.");
         }
 
         private bool IsXmlHttpRequest()
@@ -81,7 +82,7 @@ namespace life_assistant.Server.Controllers
 
         [HttpGet("calendar-events")]
         [GoogleTokenValidation]
-        public async Task<IActionResult> GetCalendarEvents()
+        public async Task<ApiResponse<List<ApiGoogleCalendarEvent>>> GetCalendarEvents()
         {
             var (accessToken, refreshToken) = GoogleTokenValidationAttribute.GetTokensFromCookie(HttpContext);
             var flow = new GoogleAuthorizationCodeFlow(new GoogleAuthorizationCodeFlow.Initializer
@@ -120,18 +121,18 @@ namespace life_assistant.Server.Controllers
 
             if (events.Items == null || events.Items.Count == 0)
             {
-                return Ok(new List<ApiGoogleCalendarEvent>());
+                return ApiResponse.Success(new List<ApiGoogleCalendarEvent>());
             }
 
             var list = events.Items.Select(e => new ApiGoogleCalendarEvent(e)).ToList();
-            return Ok(list);
+            return ApiResponse.Success(new List<ApiGoogleCalendarEvent>());
         }
 
         [HttpGet("tasks")]
         [GoogleTokenValidation]
-        public ActionResult<IList<Task>> GetTasks()
+        public ApiResponse<IList<Task>> GetTasks()
         {
-            return PerformGoogleTasksApiAction(service =>
+            return PerformGoogleTasksApiAction<IList<Task>>(service =>
             {
                 var request = service.Tasks.List(tasklistId);
                 request.MaxResults = 20;
@@ -148,9 +149,8 @@ namespace life_assistant.Server.Controllers
 
         [HttpPost("tasks")]
         [GoogleTokenValidation]
-        public ActionResult<Task> InsertTask([FromBody] Google.Apis.Tasks.v1.Data.Task task)
+        public ApiResponse<Task> InsertTask([FromBody] Task task)
         {
-            //task.Due = ConvertToLocalTime(task.Due);
             return PerformGoogleTasksApiAction(service =>
             {
                 var result = service.Tasks.Insert(task, tasklistId).Execute();
@@ -160,10 +160,8 @@ namespace life_assistant.Server.Controllers
 
         [HttpPut("tasks")]
         [GoogleTokenValidation]
-        public ActionResult UpdateTask([FromBody] Task task)
+        public ApiResponse<Task> UpdateTask([FromBody] Task task)
         {
-            // crashes. Todo: google uses utc date and sets hours to 00:00:00, causing wrong due dates sometimes 
-            //task.Due = ConvertToLocalTime(task.Due);
             return PerformGoogleTasksApiAction(service =>
             {
                 var result = service.Tasks.Update(task, tasklistId, task.Id).Execute();
@@ -173,16 +171,16 @@ namespace life_assistant.Server.Controllers
 
         [HttpDelete("tasks/{id}")]
         [GoogleTokenValidation]
-        public ActionResult DeleteTask(string id)
+        public ApiResponse<string> DeleteTask(string id)
         {
             return PerformGoogleTasksApiAction(service =>
             {
                 var result = service.Tasks.Delete(tasklistId, id).Execute();
-                return Ok("Deleted " + id);
+                return $"Deleted {id}";
             });
         }
 
-        private ActionResult PerformGoogleTasksApiAction(Func<TasksService, object> action)
+        private ApiResponse<T> PerformGoogleTasksApiAction<T>(Func<TasksService, T> action)
         {
             try
             {
@@ -210,15 +208,16 @@ namespace life_assistant.Server.Controllers
                     HttpClientInitializer = cred,
                 });
 
-                return Ok(action(service));
+                return ApiResponse.Success(action(service));
             }
             catch (GoogleApiException ex)
             {
-                return BadRequest($"Google API Error: {ex.Message}");
+                return ApiResponse.Fail<T>(ex.HttpStatusCode, $"Google API Error: {ex.Message}");
             }
             catch (Exception ex)
             {
-                return BadRequest($"Error: {ex.Message}");
+                
+                return ApiResponse.Fail<T>(HttpStatusCode.BadRequest, $"Error: {ex.Message}");
             }
         }
 
