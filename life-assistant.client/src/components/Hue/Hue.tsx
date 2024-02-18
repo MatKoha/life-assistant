@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Button, Link } from '@mui/material';
+import { Button, ButtonGroup, Link } from '@mui/material';
 import axios from 'axios';
 import './styles.scss';
 
@@ -66,6 +66,20 @@ const Hue: React.FC<Properties> = () => {
             });
     };
 
+    const getLights = () => {
+        setLoading(true);
+        axios.get('/api/hue/lights')
+            .then(() => {
+
+            })
+            .catch((error) => {
+                console.log(error);
+            })
+            .finally(() => {
+                setLoading(false);
+            });
+    };
+
     const generateToken = (code: string) => {
         axios.post("/api/hue/token/" + code,)
             .then(() => {
@@ -87,8 +101,13 @@ const Hue: React.FC<Properties> = () => {
                 </Link>
             )}
 
-            <Button disabled={loading} color="secondary" variant="contained" onClick={() => getDevices()}>Get devices</Button>
-            <Button disabled={loading} color="secondary" variant="contained" onClick={() => shutLights()}>Lights off</Button>
+            {!needsAuth && (
+                <ButtonGroup size="small">
+                    <Button disabled={loading} color="secondary" onClick={() => getDevices()}>Get devices</Button>
+                    <Button disabled={loading} color="secondary" onClick={() => shutLights()}>Lights off</Button>
+                    <Button disabled={loading} color="secondary" onClick={() => getLights()}>Get lights</Button>
+                </ButtonGroup>
+            )}
         </div>
     );
 }

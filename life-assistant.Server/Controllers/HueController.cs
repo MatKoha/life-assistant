@@ -1,6 +1,7 @@
+using life_assistant.Server.Classes;
+using life_assistant.Server.Classes.Hue;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
-using System.Security.Cryptography.X509Certificates;
 using System.Text;
 
 namespace life_assistant.Server.Controllers
@@ -25,15 +26,29 @@ namespace life_assistant.Server.Controllers
         [HttpGet("devices")]
         public async Task<IActionResult> GetDevices()
         {
-            var result = await GetHueResource("resource/device");
+            var result = await GetHueResource("device");
             return Ok();
+        }
+
+        [HueTokenValidation]
+        [HttpGet("lights")]
+        public async Task<ApiResponse<ApiHueLight>> GetLights()
+        {
+            var result = await GetHueResource("light");
+            if (!result.IsSuccessStatusCode)
+            {
+                return ApiResponse.Fail<ApiHueLight>(result.StatusCode, result.ReasonPhrase);
+            }
+
+            var content = await result.Content.ReadAsStringAsync();
+            return ApiResponse.Success<ApiHueLight>(content);
         }
 
         [HueTokenValidation]
         [HttpPut("home-state")]
         public async Task<IActionResult> TurnOffLights()
         {
-            var result = await GetHueResource($"/resource/grouped_light/{_config["HUE_HOME_ID"]}");
+            var result = await GetHueResource($"grouped_light/{_config["HUE_HOME_ID"]}");
             return Ok();
         }
 
@@ -187,34 +202,21 @@ namespace life_assistant.Server.Controllers
             }
         }
 
-        private async Task<ActionResult<string>> GetHueResource(string resourcePath)
+        private async Task<HttpResponseMessage> GetHueResource(string resourcePath)
         {
             using (HttpClient client = new HttpClient())
             {
                 client.DefaultRequestHeaders.Add("Authorization", $"Bearer {Request.Cookies["HueAccessToken"]}");
                 client.DefaultRequestHeaders.Add("hue-application-key", Request.Cookies["HueApplicationKey"]);
 
-                var response = await client.GetAsync(_apiUrl + $"/{resourcePath}");
-
-                if (response.IsSuccessStatusCode)
-                {
-                    return await response.Content.ReadAsStringAsync();
-                }
-                else if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                var response = await client.GetAsync(_apiUrl + $"/resource/{resourcePath}");
+                if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
                 {
                     await RefreshToken();
-
                     response = await client.GetAsync(_apiUrl + resourcePath);
-
-                    if (response.IsSuccessStatusCode)
-                    {
-                        return await response.Content.ReadAsStringAsync();
-                    }
-
-                    return Unauthorized();
                 }
 
-                return StatusCode((int)response.StatusCode);
+                return response;
             }
         }
 
