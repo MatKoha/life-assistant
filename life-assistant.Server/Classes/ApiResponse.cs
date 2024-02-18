@@ -12,6 +12,11 @@ namespace life_assistant.Server.Classes
             return new ApiResponse<T>(data);
         }
 
+        public static ApiResponse<T> Success<T>(T data)
+        {
+            return new ApiResponse<T>(data);
+        }
+
         public static ApiResponse<T> Fail<T>(HttpStatusCode errorCode, string errorMessage)
         {
             var response = new ApiResponse<T>(default, errorCode, errorMessage);

@@ -1,3 +1,4 @@
+using life_assistant.Server.Classes;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
 
@@ -19,51 +20,45 @@ namespace life_assistant.Server.Controllers
         }
 
         [HttpGet("hourly/{locationId}")]
-        public async Task<ActionResult<List<ApiForecast>>> GetHourlyWeather(int locationId)
+        public async Task<ApiResponse<List<ApiForecast>>> GetHourlyWeather(int locationId)
         {
-            return await GetWeatherData<List<HourlyWeatherForecastResponse>, ApiForecast>($"/forecasts/v1/hourly/12hour/{locationId}");
+            var response = await GetWeatherData($"/forecasts/v1/hourly/12hour/{locationId}");
+            if (!response.IsSuccessStatusCode)
+            {
+                return ApiResponse.Fail<List<ApiForecast>>(response.StatusCode, response.ReasonPhrase);
+            }
+
+            var responseData = await response.Content.ReadAsStringAsync();
+            var data = JsonConvert.DeserializeObject<List<HourlyWeatherForecastResponse>>(responseData);
+            var list = data.Select(x => new ApiForecast(x)).ToList();
+
+            return ApiResponse.Success(list);
         }
 
         [HttpGet("daily/{locationId}")]
-        public async Task<ActionResult<List<ApiDayWeather>>> GetDailyWeather(int locationId)
+        public async Task<ApiResponse<List<ApiDayWeather>>> GetDailyWeather(int locationId)
         {
-            return await GetWeatherData<DailyWeatherForecastResponse, ApiDayWeather>($"/forecasts/v1/daily/5day/{locationId}");
+            var response = await GetWeatherData($"/forecasts/v1/daily/5day/{locationId}");
+            if (!response.IsSuccessStatusCode)
+            {
+                return ApiResponse.Fail<List<ApiDayWeather>>(response.StatusCode, response.ReasonPhrase);
+            }
+
+            var responseData = await response.Content.ReadAsStringAsync();
+            var data = JsonConvert.DeserializeObject<DailyWeatherForecastResponse>(responseData);
+            var list = data.DailyForecasts.Select(x => new ApiDayWeather(x)).ToList();
+            return ApiResponse.Success(list);
         }
 
-        private async Task<ActionResult<List<TOutput>>> GetWeatherData<TResponse, TOutput>(string endpoint)
+        private async Task<HttpResponseMessage> GetWeatherData(string endpoint)
         {
-            try
-            {
-                string apiKey = _config["ACCUWEATHER_API_KEY"];
-                string baseUrl = "http://dataservice.accuweather.com";
+            string apiKey = _config["ACCUWEATHER_API_KEY"];
+            string baseUrl = "http://dataservice.accuweather.com";
 
-                var client = _httpClientFactory.CreateClient("AccuWeatherApi");
+            var client = _httpClientFactory.CreateClient("AccuWeatherApi");
 
-                var response = await client.GetAsync($"{baseUrl}{endpoint}?apikey={apiKey}&details=true&metric=true");
-                var responseData = await response.Content.ReadAsStringAsync();
-
-
-                if (response.IsSuccessStatusCode)
-                {
-                    var apiItem = JsonConvert.DeserializeObject<TResponse>(responseData);
-                    if (apiItem is List<HourlyWeatherForecastResponse> hourForecasts)
-                    {
-                        return Ok(hourForecasts.Select(forecast => new ApiForecast(forecast)).ToList() as List<TOutput>);
-                    }
-                    else if (apiItem is DailyWeatherForecastResponse dayForecasts)
-                    {
-                        return Ok(dayForecasts.DailyForecasts.Select(day => new ApiDayWeather(day)).ToList() as List<TOutput>);
-                    }
-                }
-
-                var apiError = JsonConvert.DeserializeObject<ApiError>(responseData);
-                return BadRequest($"{apiError.Code}: {apiError.Message}");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "An error occurred while fetching weather data.");
-                return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while processing your request.");
-            }
+            var response = await client.GetAsync($"{baseUrl}{endpoint}?apikey={apiKey}&details=true&metric=true");
+            return response;
         }
     }
 }
