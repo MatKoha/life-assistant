@@ -4,7 +4,7 @@ import { CircularProgress, Grid } from '@mui/material';
 import dayjs, { Dayjs } from 'dayjs';
 import SunnyIcon from '@mui/icons-material/WbSunnyOutlined';
 import MoonIcon from '@mui/icons-material/ModeNightOutlined';
-import { WiNightAltCloudy, WiDaySunnyOvercast, WiNightAltPartlyCloudy, WiDayCloudy, WiCloudy, WiDayRainMix, WiNightAltRainMix, WiRain, WiRainMix, WiDaySunny, WiShowers, WiDayCloudyHigh } from "weather-icons-react";
+import { WiNightAltCloudy, WiDaySunnyOvercast, WiNightAltPartlyCloudy, WiDayCloudy, WiCloudy, WiDayRainMix, WiNightAltRainMix, WiRain, WiRainMix, WiDaySunny, WiShowers, WiDayCloudyHigh, WiSnow } from "weather-icons-react";
 import { WeatherDisplayType, WeatherType } from '../../enums';
 import { ApiDayWeather, ApiHourWeather } from '../../Api/Typings/Weather';
 import CakeIcon from '@mui/icons-material/Cake';
@@ -69,7 +69,7 @@ const Weather: React.FC<Properties> = (props) => {
                     localStorage.setItem('dailyWeatherData', JSON.stringify({ data: response.data, lastUpdate: dayjs() }));
                 } else {
                     setHourlyData(response.data);
-                    localStorage.setItem('hourlyWeatherData', JSON.stringify({ data: response.data, lastUpdate: dayjs()}));
+                    localStorage.setItem('hourlyWeatherData', JSON.stringify({ data: response.data, lastUpdate: dayjs() }));
                 }
             })
             .catch((error) => {
@@ -124,6 +124,8 @@ const Weather: React.FC<Properties> = (props) => {
                 return <WiShowers size={size} />
             case WeatherType.PartlySunny:
                 return <WiDayCloudyHigh size={size} />
+            case WeatherType.Snow:
+                return <WiSnow size={size} />
             default:
                 return <CakeIcon />;
         }

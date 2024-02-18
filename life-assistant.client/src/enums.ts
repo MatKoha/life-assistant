@@ -13,6 +13,7 @@ export enum WeatherType {
     MostlyCloudyWithShowers = 13,
     PartlySunnyWithShowers = 14,
     Rain = 18,
+    Snow = 22,
     FreezingRain = 26,
     RainAndSnow = 29,
     Clear = 33,
