@@ -125,7 +125,7 @@ namespace life_assistant.Server.Controllers
             }
 
             var list = events.Items.Select(e => new ApiGoogleCalendarEvent(e)).ToList();
-            return ApiResponse.Success(new List<ApiGoogleCalendarEvent>());
+            return ApiResponse.Success(list);
         }
 
         [HttpGet("tasks")]
