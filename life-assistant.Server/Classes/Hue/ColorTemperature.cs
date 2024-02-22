@@ -5,7 +5,7 @@ namespace life_assistant.Server.Classes.Hue
     public class ColorTemperature
     {
         [JsonProperty("mirek")]
-        public int Mirek { get; set; }
+        public int? Mirek { get; set; }
 
         [JsonProperty("mirek_valid")]
         public bool MirekValid { get; set; }
