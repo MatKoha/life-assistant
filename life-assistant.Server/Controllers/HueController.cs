@@ -1,3 +1,4 @@
+using Azure;
 using life_assistant.Server.Classes;
 using life_assistant.Server.Classes.Hue;
 using Microsoft.AspNetCore.Mvc;
@@ -24,24 +25,32 @@ namespace life_assistant.Server.Controllers
 
         [HueTokenValidation]
         [HttpGet("devices")]
-        public async Task<IActionResult> GetDevices()
+        public async Task<ApiResponse<List<Device>>> GetDevices()
         {
             var result = await GetHueResource("device");
-            return Ok();
+            if (!result.IsSuccessStatusCode)
+            {
+                return ApiResponse.Fail<List<Device>>(result.StatusCode, result.ReasonPhrase);
+            }
+
+            var jsonResult = await result.Content.ReadAsStringAsync();
+            var data = JsonConvert.DeserializeObject<HueApiResponse<Device>>(jsonResult);
+            return ApiResponse.Success(data.Data);
         }
 
         [HueTokenValidation]
         [HttpGet("lights")]
-        public async Task<ApiResponse<ApiHueLight>> GetLights()
+        public async Task<ApiResponse<List<Light>>> GetLights()
         {
             var result = await GetHueResource("light");
             if (!result.IsSuccessStatusCode)
             {
-                return ApiResponse.Fail<ApiHueLight>(result.StatusCode, result.ReasonPhrase);
+                return ApiResponse.Fail<List<Light>>(result.StatusCode, result.ReasonPhrase);
             }
 
             var content = await result.Content.ReadAsStringAsync();
-            return ApiResponse.Success<ApiHueLight>(content);
+            var data = JsonConvert.DeserializeObject<HueApiResponse<Light>>(content);
+            return ApiResponse.Success(data.Data);
         }
 
         [HueTokenValidation]
@@ -227,7 +236,7 @@ namespace life_assistant.Server.Controllers
                 HttpOnly = true,
                 Secure = true,
                 SameSite = SameSiteMode.Strict,
-                Expires = DateTime.Now.AddSeconds(token.ExpiresIn)
+                Expires = DateTime.MaxValue
             };
 
             Response.Cookies.Append("HueAccessToken", token.AccessToken, cookieOptions);
