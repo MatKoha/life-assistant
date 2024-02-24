@@ -1,5 +1,54 @@
-.light-title {
+
+.light-container {
+    padding: 4px;
+}
+
+.title-container {
     display: flex;
     align-items: center;
     justify-content: space-between;
 }
+
+.MuiTypography-subtitle2 {
+    line-height: 0.8 !important;
+}
+
+.light-title {
+    color: #444 !important;
+}
+
+.slider-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.MuiSlider-colorPrimary {
+    color: #fff !important;
+}
+
+.brightness {
+    padding: 16px;
+    border-radius: 8px;
+}
+
+.brightness-icon {
+    color: #444 !important;
+}
+
+.MuiSlider-valueLabelOpen {
+    color: #444 !important;
+    background-color: transparent !important;
+    top: 48px !important;
+    right: -20px;
+}
+
+.hue-picker-container {
+    position: relative;
+    margin-bottom: 8px;
+}
+
+.hue-picker {
+    position: unset !important;
+}
+

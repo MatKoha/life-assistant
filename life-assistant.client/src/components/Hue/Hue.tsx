@@ -1,9 +1,14 @@
 import { useState, useEffect } from 'react';
-import { Button, ButtonGroup, Divider, Link, Slider, Switch } from '@mui/material';
+import { Button, ButtonGroup, Link, Slider, Stack, Switch, Typography } from '@mui/material';
 import axios from 'axios';
 import './styles.scss';
 import { Color, Light } from '../../Api/Typings/Hue';
 import ColorConverter from 'ts-cie1931-rgb';
+import LightModeIcon from '@mui/icons-material/LightMode';
+import FlareIcon from '@mui/icons-material/Flare';
+//import Wheel from '@uiw/react-color-wheel';
+//import { hsvaToHex, ColorResult, rgbStringToHsva } from '@uiw/color-convert';
+
 
 interface Properties {
     children?: React.ReactNode;
@@ -13,6 +18,7 @@ const Hue: React.FC<Properties> = () => {
     const [loading, setLoading] = useState<boolean>(false);
     const [needsAuth, setNeedsAuth] = useState<boolean>(true);
     const [lights, setLights] = useState<Light[]>([]);
+    //const [hsva, setHsva] = useState({ h: 214, s: 43, v: 90, a: 1 });
 
     useEffect(() => {
         setLoading(true);
@@ -96,10 +102,19 @@ const Hue: React.FC<Properties> = () => {
             });
     }
 
-    const xyToHex = (color: Color): string => {
-        const rgb = ColorConverter.xyBriToRgb(color.xy.x, color.xy.y, 100);
+    const xyToHex = (color: Color, brightness: number): string => {
+        brightness = 15 + ((brightness - 1) / (100 - 1)) * (100 - 15); // for style only
+        const rgb = ColorConverter.xyBriToRgb(color.xy.x, color.xy.y, brightness);
         return rgbToHex(rgb);
     }
+
+    //const xyToRgbString = (color: Color, brightness: number): string => {
+    //    if (brightness < 20) {
+    //        brightness = 20;
+    //    }
+    //    const rgb = ColorConverter.xyBriToRgb(color.xy.x, color.xy.y, brightness);
+    //    return `rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`;
+    //}
 
     const rgbToHex = (rgb: { r: number, g: number, b: number }): string => {
         const toHex = (value: number): string => {
@@ -147,27 +162,33 @@ const Hue: React.FC<Properties> = () => {
                     <Button disabled={loading} color="secondary" onClick={() => getLights()}>Get lights</Button>
                 </ButtonGroup>
             )}
-
             {lights && lights.map((light, i) => (
-                <div key={light.id}>
-                    <Divider />
-                    <div className="light-title">
-                        <h4>{light.metadata.name}</h4>
+                <div className="light-container" key={light.id} >
+                    <div className="title-container">
+                        <Typography variant="h6" className="light-title">
+                            {light.metadata.name}
+                        </Typography>
                         <Switch checked={light.on.isOn} onChange={handleToggleLight(i)}></Switch>
                     </div>
-
-                    {light.on.isOn && (
-                        <Slider
-                            style={{ color: light.on.isOn ? xyToHex(light.color) : 'grey' }}
-                            min={1}
-                            aria-label="Temperature"
-                            value={light.dimming.brightness}
-                            color="secondary"
-                            onChange={handleBrightness(i)}
-                            valueLabelDisplay="auto"
-                            valueLabelFormat={formatValueLabel}
-                        />
-                    )}
+                    <div className="brightness" style={{
+                        background: light.on.isOn ? `linear-gradient(90deg, ${xyToHex(light.color, light.dimming.brightness)}33 0%, ${xyToHex(light.color, light.dimming.brightness)} 100%)` : '#f2f2f2',
+                        boxShadow: light.on.isOn ? `${xyToHex(light.color, light.dimming.brightness)} 0px 4px 12px` : 'none'
+                    }}>
+                        {/*<Wheel color={hsva} onChange={(color) => setHsva({ ...hsva, ...color.hsva })} />*/}
+                        <Stack spacing={2} direction="row" sx={{ mb: 1 }} alignItems="center">
+                            <FlareIcon className="brightness-icon" />
+                            <Slider
+                                disabled={!light.on.isOn}
+                                color="primary"
+                                min={1}
+                                value={light.dimming.brightness}
+                                onChange={handleBrightness(i)}
+                                valueLabelDisplay="on"
+                                valueLabelFormat={formatValueLabel}
+                            />
+                            <LightModeIcon className="brightness-icon" />
+                        </Stack>
+                    </div>
                 </div>
             ))}
         </div>
