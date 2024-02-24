@@ -1,4 +1,3 @@
-using Azure;
 using life_assistant.Server.Classes;
 using life_assistant.Server.Classes.Hue;
 using Microsoft.AspNetCore.Mvc;
@@ -55,10 +54,30 @@ namespace life_assistant.Server.Controllers
 
         [HueTokenValidation]
         [HttpPut("home-state")]
-        public async Task<IActionResult> TurnOffLights()
+        public async Task<ApiResponse<bool>> TurnOffLights()
         {
-            var result = await GetHueResource($"grouped_light/{_config["HUE_HOME_ID"]}");
-            return Ok();
+            using (HttpClient client = new HttpClient())
+            {
+                client.DefaultRequestHeaders.Add("Authorization", $"Bearer {Request.Cookies["HueAccessToken"]}");
+                client.DefaultRequestHeaders.Add("hue-application-key", Request.Cookies["HueApplicationKey"]);
+
+                string jsonContent = JsonConvert.SerializeObject(new { on = new { on = false } });
+                var content = new StringContent(jsonContent, Encoding.UTF8, "application/json");
+                var response = await client.PutAsync(_apiUrl + $"/resource/grouped_light/{_config["HUE_HOME_ID"]}", content);
+
+                if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                {
+                    await RefreshToken();
+                    response = await client.PutAsync(_apiUrl + $"/resource/grouped_light/{_config["HUE_HOME_ID"]}", content);
+                }
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    return ApiResponse.Fail<bool>(response.StatusCode, response.ReasonPhrase);
+                }
+
+                return ApiResponse.Success(true);
+            }
         }
 
         [HttpPost("token/{code}")]
