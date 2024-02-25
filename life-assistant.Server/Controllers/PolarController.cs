@@ -1,5 +1,4 @@
-using Azure.Core;
-using life_assistant.Server.Classes.Hue;
+using life_assistant.Server.Classes;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -66,6 +65,32 @@ namespace life_assistant.Server.Controllers
             catch (Exception ex)
             {
                 return StatusCode(500, $"An error occurred: {ex.Message}");
+            }
+        }
+
+        [HttpGet("users/{memberId}/sleep")]
+        public async Task<ApiResponse<SleepData>> GetSleepData(int memberId)
+        {
+            var polarUser = this.db.PolarUsers.FirstOrDefault(x => x.MemberId == memberId);
+
+            if (polarUser == null)
+            {
+                return ApiResponse.Fail<SleepData>(System.Net.HttpStatusCode.NotFound, "User not found.");
+            }
+
+            using (var httpClient = _httpClientFactory.CreateClient())
+            {
+                httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+                httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", polarUser.AccessToken);
+
+                var response = await httpClient.GetAsync($"https://www.polaraccesslink.com/v3/users/sleep");
+                if (!response.IsSuccessStatusCode)
+                {
+                    return ApiResponse.Fail<SleepData>(response.StatusCode, response.ReasonPhrase);
+                }
+
+                var responseData = await response.Content.ReadAsStringAsync();
+                return ApiResponse.Success<SleepData>(responseData);
             }
         }
 
